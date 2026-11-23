@@ -24,7 +24,10 @@ export async function authenticate(req: Request): Promise<AuthContext | Response
 
   const url = Deno.env.get("SUPABASE_URL");
   const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
-  const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const secretKeysRaw = Deno.env.get("SUPABASE_SECRET_KEYS");
+  let defaultSecret: string | undefined;
+  if (secretKeysRaw) { try { defaultSecret = JSON.parse(secretKeysRaw)?.default; } catch { /* invalid secret map is treated as missing */ } }
+  const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_SECRET_KEY") ?? defaultSecret;
   if (!url || !anon || !service) return json({ error: "Server authentication is not configured." }, 503);
 
   const authClient = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
