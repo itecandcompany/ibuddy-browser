@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
       { role: "user", content: [
         { type: "text", text: "Transcribe the readable text in this user-selected image. Do not interpret or solve it." },
         { type: "image_url", image_url: { url: `data:${data.mimeType};base64,${data.imageBase64}` } },
-      ] as unknown as string },
+      ] },
     ], 2500);
     return json({ text, engine: "server-vision", saved: false });
   } catch (error) {
