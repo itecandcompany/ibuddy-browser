@@ -1,0 +1,10 @@
+{
+  "type": "IBUDDY_PAGE_SNAPSHOT",
+  "url": "https://example.org/fixture",
+  "title": "iBuddy Extraction Fixture",
+  "headings": ["Safe Page Extraction"],
+  "paragraphs": ["This visible paragraph is safe to include in a local extraction test."],
+  "formLabels": ["Email address", "Password"],
+  "links": [{ "label": "Read the guide", "url": "https://example.org/guide" }],
+  "limitations": []
+}
