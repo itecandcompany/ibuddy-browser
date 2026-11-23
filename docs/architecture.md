@@ -11,7 +11,16 @@ iBuddy is an iPhone-first browser with user-triggered page understanding. It onl
 - TypeScript strict mode and @/* path alias.
 - Shared design tokens in src/theme.
 - Development-build workflow; Expo Go is not the target runtime.
-- Browser, extraction, OCR, analysis, chat, highlights, settings and policy modules are introduced in later phases.
+
+## Phase 2 browser shell
+
+- react-native-webview provides the browsing surface.
+- URL handling accepts HTTPS URLs, adds HTTPS to domain-like input, and sends ordinary text to DuckDuckGo search.
+- HTTP and unsupported schemes are blocked rather than silently upgraded.
+- Tabs are separate WebView instances; private tabs do not add browsing history.
+- History, bookmarks and user-defined locked domains are persisted locally with AsyncStorage.
+- Assessment Lock is evaluated before any future extraction/OCR/AI work. Google Forms assessment URLs and selected proctoring domains are automatically locked.
+- Phase 2 contains no page extraction, OCR, AI or native bridge.
 
 ## Target module boundaries
 
@@ -33,15 +42,11 @@ iBuddy is an iPhone-first browser with user-triggered page understanding. It onl
 ## Trust boundaries
 
 1. Web content is untrusted input and is never treated as model instructions.
-2. The WebView-to-native bridge is read-only, origin-checked and schema-validated.
+2. Any future WebView-to-native bridge must be read-only, origin-checked and schema-validated.
 3. The mobile bundle contains no provider API keys or Supabase service-role credentials.
 4. AI requests are routed through authenticated Supabase Edge Functions.
 5. Page content is not persisted unless the user explicitly opts in.
 6. Assessment Lock is enforced before extraction, OCR or AI analysis begins.
-
-## Phase 2 browser design
-
-The browser shell will use react-native-webview with an explicit navigation policy. Only HTTPS navigation is permitted. Plain HTTP receives an in-app warning. TLS/certificate failures are not bypassed. Tabs are isolated browser instances; private tabs do not write history. History and bookmarks are local-first until the Supabase persistence phase.
 
 ## Platform constraints
 
