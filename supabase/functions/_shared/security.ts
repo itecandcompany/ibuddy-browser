@@ -17,6 +17,40 @@ export function options(req: Request): Response | null {
 
 export type AuthContext = { userId: string; admin: SupabaseClient };
 
+export async function readBoundedJson(req: Request, maxBytes: number): Promise<{ value: unknown } | Response> {
+  const declaredLength = Number(req.headers.get("content-length") ?? 0);
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    return json({ error: "Request payload is too large." }, 413);
+  }
+  const reader = req.body?.getReader();
+  if (!reader) return json({ error: "Request body is required." }, 400);
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel();
+        return json({ error: "Request payload is too large." }, 413);
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return json({ error: "Request body could not be read." }, 400);
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  try {
+    return { value: JSON.parse(new TextDecoder().decode(bytes)) as unknown };
+  } catch {
+    return json({ error: "Invalid JSON." }, 400);
+  }
+}
+
+
 export async function authenticate(req: Request): Promise<AuthContext | Response> {
   const authorization = req.headers.get("Authorization") ?? "";
   const match = authorization.match(/^Bearer\s+(.+)$/i);
@@ -86,6 +120,9 @@ export async function callModel(messages: Array<{ role: "system" | "user" | "ass
   const apiKey = Deno.env.get("AI_PROVIDER_API_KEY");
   const model = Deno.env.get("AI_MODEL");
   if (!endpoint || !apiKey || !model) throw new Error("AI provider is not configured. Set AI_PROVIDER_URL, AI_PROVIDER_API_KEY and AI_MODEL as Supabase Edge Function secrets.");
+  let providerUrl: URL;
+  try { providerUrl = new URL(endpoint); } catch { throw new Error("AI_PROVIDER_URL is invalid."); }
+  if (providerUrl.protocol !== "https:") throw new Error("AI_PROVIDER_URL must use HTTPS.");
   const response = await fetch(endpoint, {
     method: "POST",
     headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
