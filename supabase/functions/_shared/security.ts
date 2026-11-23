@@ -89,7 +89,7 @@ export async function enforceRateLimit(admin: SupabaseClient, userId: string, bu
 }
 
 const AUTOMATIC_LOCKED_HOSTS = [
-  "forms.gle", "docs.google.com", "exam.net", "respondus.com", "honorlock.com",
+  "forms.gle", "exam.net", "respondus.com", "honorlock.com",
   "proctorio.com", "proctoru.com", "examity.com", "inspera.com", "testinvite.com",
   "safeexambrowser.org",
 ];
