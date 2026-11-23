@@ -17,7 +17,7 @@ iBuddy is an iPhone-first browser with user-triggered page understanding. It onl
 - react-native-webview provides the browsing surface.
 - URL handling accepts HTTPS URLs, adds HTTPS to domain-like input, and sends ordinary text to DuckDuckGo search.
 - HTTP and unsupported schemes are blocked rather than silently upgraded.
-- Tabs are separate WebView instances; private tabs do not add browsing history.
+- Tabs retain their own URL/title and mount the active tab in the WebView. Switching tabs currently reloads the selected URL rather than preserving each page's in-memory state; private tabs do not add browsing history.
 - History, bookmarks and user-defined locked domains are persisted locally with AsyncStorage.
 - Assessment Lock is evaluated before any future extraction/OCR/AI work. Google Forms assessment URLs and selected proctoring domains are automatically locked.
 - Phase 2 contains no page extraction, OCR, AI or native bridge.
