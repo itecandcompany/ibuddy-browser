@@ -15,7 +15,9 @@
 | Malicious page content / prompt injection | Treat page text as untrusted data; isolate it from system instructions and constrain model tasks. |
 | Bridge spoofing | Validate schemas, sender origin and message types; expose no native functions to page JavaScript. |
 | Secret leakage | Keep provider keys and service-role credentials exclusively in Edge Function secrets. |
-| Sensitive form data exposure | Never extract typed values, password fields, hidden inputs or form control values. |
+| Sensitive form data exposure | Never extract typed values, password fields, hidden inputs or form control values; only visible labels are read. |
+| WebView message flooding | Reject oversized messages before JSON parsing; validate strict Zod schemas and bounded field lengths. |
+| Image privacy | Use the system photo picker; run OCR on-device with Apple Vision and do not upload or persist image bytes or OCR output in Phase 3. |
 | Token leakage in page text | Redact token-like strings before server submission. |
 | Assessment misuse | Assessment Lock blocks extraction, OCR and AI on locked tabs/domains; no in-app bypass. |
 | Private browsing leakage | Do not persist private-tab history or analysis. |
