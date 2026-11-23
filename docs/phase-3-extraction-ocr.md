@@ -25,7 +25,7 @@
 2. Open a page with a form. Confirm only labels are extracted; values typed into fields are never shown.
 3. Open a Google Forms page protected by Assessment Lock. Confirm Read page is disabled and no extraction request is sent.
 4. Select a screenshot from Photos using OCR image. Confirm text is recognized on-device and shown in the OCR sheet.
-5. Deny photo access and confirm the app explains that image selection permission is required.
+5. Cancel the system photo picker and confirm no image is processed. Confirm iBuddy does not request broad photo-library access.
 6. Try an image with no readable text and confirm the app reports no detected text rather than inventing content.
 7. Test a page containing an iframe or image-only text and confirm limitations are disclosed.
 8. Inspect network traffic and confirm page text, image bytes and OCR output are not uploaded by Phase 3.
