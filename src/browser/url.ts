@@ -28,7 +28,8 @@ export function resolveAddressInput(input: string): AddressResult {
 
   try {
     const parsed = new URL(candidate);
-    if (parsed.username || parsed.password) return { ok: false, reason: 'credential-url' };\n    if (parsed.protocol !== 'https:' || !parsed.hostname) {
+    if (parsed.username || parsed.password) return { ok: false, reason: 'credential-url' };
+    if (parsed.protocol !== 'https:' || !parsed.hostname) {
       return { ok: false, reason: 'unsupported-scheme' };
     }
     return { ok: true, url: parsed.toString() };
@@ -39,7 +40,8 @@ export function resolveAddressInput(input: string): AddressResult {
 
 export function isHttpsUrl(value: string): boolean {
   try {
-    const parsed = new URL(value);\n    return parsed.protocol === 'https:' && !parsed.username && !parsed.password;
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' && !parsed.username && !parsed.password;
   } catch {
     return false;
   }
