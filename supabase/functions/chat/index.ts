@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     { role: "user" as const, content: data.question },
   ];
   try {
-    const text = await callModel(messages, 800);
+    const searchQuery = (data.question + " " + data.title).slice(0, 450);\n    const text = await callModel(messages, 800, searchQuery);
     return json({ text, sourceUrl: data.url, saved: false });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "Chat failed." }, 502);
