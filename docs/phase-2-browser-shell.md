@@ -21,7 +21,7 @@
 ## Known limitations / verification still required
 
 - iOS WKWebView certificate validation is platform-managed; this app does not expose a certificate-error bypass. Real-device testing is required to verify user-visible failure behavior for invalid certificates.
-- The current tab switcher is a compact native list/alert, not a full visual tab-grid screen.
+- The current tab switcher is a compact native list/alert, not a full visual tab-grid screen. Switching tabs reloads the saved URL and does not preserve each page's in-memory form or scroll state.
 - History and bookmarks are persisted locally; cloud sync and account-linked retention controls belong to later phases.
 - Android and iOS builds, package installation, lint, TypeScript and Jest have not been run in this remote commit workflow.
 - Cross-platform pull-to-refresh behavior needs device testing. Android uses WebView pull-to-refresh; iOS users can use Reload.
