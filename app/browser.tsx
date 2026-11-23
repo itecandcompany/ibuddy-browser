@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { WebView, type WebViewNavigation, type WebView as WebViewType, type WebViewMessageEvent } from 'react-native-webview';
 import * as ImagePicker from 'expo-image-picker';
 import { recognizeImageText } from '@/ocr';
@@ -23,6 +24,7 @@ import { palette } from '@/theme/palette';
 import { resolveAddressInput } from '@/browser/url';
 import { getHostname, isDomainLocked } from '@/policy/assessment-lock';
 import { useBrowserStore, type Bookmark, type HistoryEntry } from '@/state/browser-store';
+import { useAnalysisStore } from '@/state/analysis-store';
 
 type ListMode = 'history' | 'bookmarks' | null;
 
@@ -40,6 +42,7 @@ export default function BrowserScreen() {
   const addHistory = useBrowserStore((state) => state.addHistory);
   const toggleBookmark = useBrowserStore((state) => state.toggleBookmark);
   const toggleDomainLock = useBrowserStore((state) => state.toggleDomainLock);
+  const setAnalysisSnapshot = useAnalysisStore((state) => state.setSnapshot);
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0]!;
   const [address, setAddress] = useState(activeTab.url);
@@ -60,7 +63,10 @@ export default function BrowserScreen() {
     setAddress(activeTab.url);
     setErrorMessage(null);
     setSecurityMessage(null);
-  }, [activeTab.id, activeTab.url]);
+    setPageSnapshot(null);
+    setSnapshotVisible(false);
+    setAnalysisSnapshot(null);
+  }, [activeTab.id, activeTab.url, setAnalysisSnapshot]);
 
   const locked = useMemo(() => isDomainLocked(activeTab.url, lockedDomains), [activeTab.url, lockedDomains]);
   const hostname = getHostname(activeTab.url);
@@ -72,6 +78,7 @@ export default function BrowserScreen() {
       setExtracting(false);
       setPageSnapshot(null);
       setSnapshotVisible(false);
+      setAnalysisSnapshot(null);
       setOcrResult(null);
       setOcrVisible(false);
     }
@@ -176,6 +183,7 @@ export default function BrowserScreen() {
       }
       extractionRequestId.current = null;
       setPageSnapshot(parsed.data);
+      setAnalysisSnapshot(parsed.data);
       setSnapshotVisible(true);
       setExtracting(false);
     } catch {
@@ -330,6 +338,7 @@ export default function BrowserScreen() {
         <Pressable accessibilityRole="button" accessibilityLabel="Reload page" style={styles.toolButton} onPress={() => { setErrorMessage(null); webViewRef.current?.reload(); }}><Text style={styles.toolLabel}>Reload</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Toggle bookmark" style={styles.toolButton} onPress={() => toggleBookmark({ url: activeTab.url, title: activeTab.title })}><Text style={[styles.toolIcon, isBookmarked && styles.activeIcon]}>{isBookmarked ? '★' : '☆'}</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Read visible page" disabled={locked || loading || extracting} style={[styles.toolButton, (locked || loading || extracting) && styles.disabledTool]} onPress={extractVisiblePage}><Text style={styles.toolLabel}>{extracting ? 'Reading…' : 'Read page'}</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Open iBuddy Study" disabled={locked || !pageSnapshot} style={[styles.toolButton, (locked || !pageSnapshot) && styles.disabledTool]} onPress={() => router.push('/assistant')}><Text style={styles.toolLabel}>Study</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Recognize text in selected image" disabled={locked || ocrLoading} style={[styles.toolButton, (locked || ocrLoading) && styles.disabledTool]} onPress={chooseImageForOcr}><Text style={styles.toolLabel}>{ocrLoading ? 'OCR…' : 'OCR image'}</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="History" style={styles.toolButton} onPress={() => setListMode('history')}><Text style={styles.toolLabel}>History</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Bookmarks" style={styles.toolButton} onPress={() => setListMode('bookmarks')}><Text style={styles.toolLabel}>Saved</Text></Pressable>
