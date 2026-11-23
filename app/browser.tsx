@@ -133,17 +133,13 @@ export default function BrowserScreen() {
       return;
     }
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert('Photo access needed', 'Allow access to select an image you want iBuddy to read.');
-        return;
-      }
+      // iOS presents the system photo picker. The user selects one image;
+      // iBuddy does not request broad photo-library access.
       const selection = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: false,
         base64: true,
         quality: 0.8,
-        selectionLimit: 1,
       });
       if (selection.canceled) return;
       const base64Image = selection.assets[0]?.base64;
