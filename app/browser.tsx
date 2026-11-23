@@ -15,6 +15,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView, type WebViewNavigation } from 'react-native-webview';
+import * as ImagePicker from 'expo-image-picker';
+import { recognizeImageText } from '@/ocr';
+import type { OcrResult } from '@/ocr/types';
 import type { WebView as WebViewType, WebViewMessageEvent } from 'react-native-webview';
 import { buildPageExtractionScript, pageSnapshotSchema, type PageSnapshot } from '@/extraction/page-extractor';
 import { palette } from '@/theme/palette';
@@ -49,6 +52,9 @@ export default function BrowserScreen() {
   const [pageSnapshot, setPageSnapshot] = useState<PageSnapshot | null>(null);
   const [snapshotVisible, setSnapshotVisible] = useState(false);
   const [extracting, setExtracting] = useState(false);
+  const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
+  const [ocrVisible, setOcrVisible] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
   const extractionRequestId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -60,6 +66,17 @@ export default function BrowserScreen() {
   const locked = useMemo(() => isDomainLocked(activeTab.url, lockedDomains), [activeTab.url, lockedDomains]);
   const hostname = getHostname(activeTab.url);
   const isBookmarked = bookmarks.some((item) => item.url === activeTab.url);
+
+  useEffect(() => {
+    if (locked) {
+      extractionRequestId.current = null;
+      setExtracting(false);
+      setPageSnapshot(null);
+      setSnapshotVisible(false);
+      setOcrResult(null);
+      setOcrVisible(false);
+    }
+  }, [locked]);
 
   const navigate = (value: string) => {
     const result = resolveAddressInput(value);
@@ -106,6 +123,45 @@ export default function BrowserScreen() {
     webViewRef.current.injectJavaScript(buildPageExtractionScript(requestId));
   };
 
+  const chooseImageForOcr = async () => {
+    if (locked) {
+      Alert.alert('Assessment Lock is active', 'OCR is disabled on this protected page.');
+      return;
+    }
+    if (Platform.OS !== 'ios') {
+      Alert.alert('iOS OCR only', 'On-device Apple Vision OCR is currently available in the iPhone build.');
+      return;
+    }
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Photo access needed', 'Allow access to select an image you want iBuddy to read.');
+        return;
+      }
+      const selection = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        base64: true,
+        quality: 0.8,
+        selectionLimit: 1,
+      });
+      if (selection.canceled) return;
+      const base64Image = selection.assets[0]?.base64;
+      if (!base64Image) {
+        Alert.alert('Image unavailable', 'The selected image could not be read. Choose another image.');
+        return;
+      }
+      setOcrLoading(true);
+      const result = await recognizeImageText(base64Image);
+      setOcrResult(result);
+      setOcrVisible(true);
+    } catch (error) {
+      Alert.alert('OCR could not complete', error instanceof Error ? error.message : 'The selected image could not be processed.');
+    } finally {
+      setOcrLoading(false);
+    }
+  };
+
   const onPageSnapshotMessage = (event: WebViewMessageEvent) => {
     const messageUrl = event.nativeEvent.url;
     try {
@@ -115,7 +171,7 @@ export default function BrowserScreen() {
       }
       const raw = JSON.parse(event.nativeEvent.data) as unknown;
       const parsed = pageSnapshotSchema.safeParse(raw);
-      if (!parsed.success || parsed.data.requestId !== extractionRequestId.current) {
+      if (!parsed.success || parsed.data.requestId !== extractionRequestId.current || new URL(parsed.data.url).origin !== new URL(activeTab.url).origin) {
         setExtracting(false);
         return;
       }
@@ -273,7 +329,8 @@ export default function BrowserScreen() {
         <Pressable accessibilityRole="button" accessibilityLabel="Go forward" style={styles.toolButton} onPress={() => webViewRef.current?.goForward()}><Text style={styles.toolIcon}>›</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Reload page" style={styles.toolButton} onPress={() => { setErrorMessage(null); webViewRef.current?.reload(); }}><Text style={styles.toolLabel}>Reload</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Toggle bookmark" style={styles.toolButton} onPress={() => toggleBookmark({ url: activeTab.url, title: activeTab.title })}><Text style={[styles.toolIcon, isBookmarked && styles.activeIcon]}>{isBookmarked ? '★' : '☆'}</Text></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Read visible page" disabled={locked || loading} style={[styles.toolButton, (locked || loading) && styles.disabledTool]} onPress={extractVisiblePage}><Text style={styles.toolLabel}>{extracting ? 'Reading…' : 'Read page'}</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Read visible page" disabled={locked || loading || extracting} style={[styles.toolButton, (locked || loading || extracting) && styles.disabledTool]} onPress={extractVisiblePage}><Text style={styles.toolLabel}>{extracting ? 'Reading…' : 'Read page'}</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Recognize text in selected image" disabled={locked || ocrLoading} style={[styles.toolButton, (locked || ocrLoading) && styles.disabledTool]} onPress={chooseImageForOcr}><Text style={styles.toolLabel}>{ocrLoading ? 'OCR…' : 'OCR image'}</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="History" style={styles.toolButton} onPress={() => setListMode('history')}><Text style={styles.toolLabel}>History</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Bookmarks" style={styles.toolButton} onPress={() => setListMode('bookmarks')}><Text style={styles.toolLabel}>Saved</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Assessment Lock settings" style={styles.toolButton} onPress={showLockInfo}><Text style={[styles.toolLabel, locked && styles.activeIcon]}>Lock</Text></Pressable>
@@ -307,9 +364,27 @@ export default function BrowserScreen() {
               {!!pageSnapshot?.paragraphs.length && <Text style={styles.snapshotSection}>VISIBLE TEXT</Text>}
               {pageSnapshot?.paragraphs.map((item, index) => <Text key={'p-' + index} style={styles.snapshotParagraph}>{item}</Text>)}
               {!!pageSnapshot?.links.length && <Text style={styles.snapshotSection}>LINKS</Text>}
+              {pageSnapshot?.formLabels.length ? <Text style={styles.snapshotSection}>FORM LABELS ONLY · NO ANSWERS</Text> : null}
+              {pageSnapshot?.formLabels.map((item, index) => <Text key={'f-' + index} style={styles.snapshotParagraph}>{item}</Text>)}
               {pageSnapshot?.links.map((item, index) => <Text key={'l-' + index} style={styles.snapshotLink}>{item.label} · {item.url}</Text>)}
-              {pageSnapshot && pageSnapshot.headings.length + pageSnapshot.paragraphs.length === 0 && <Text style={styles.emptyText}>No readable visible text was found on this page.</Text>}
+              {pageSnapshot?.limitations.map((item) => <Text key={item} style={styles.snapshotFootnote}>Limitation: {item.replaceAll('-', ' ')}</Text>)}
+              {pageSnapshot && pageSnapshot.headings.length + pageSnapshot.paragraphs.length + pageSnapshot.formLabels.length === 0 && <Text style={styles.emptyText}>No readable visible text was found on this page.</Text>}
               <Text style={styles.snapshotFootnote}>This preview is read-only and remains on this device. Form entries, hidden fields, cookies and browser storage are not collected.</Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+      <Modal visible={ocrVisible} transparent animationType="slide" onRequestClose={() => setOcrVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeading}>
+              <Text style={styles.modalTitle}>Image text recognition</Text>
+              <Pressable onPress={() => setOcrVisible(false)}><Text style={styles.modalClose}>Done</Text></Pressable>
+            </View>
+            <ScrollView>
+              <Text style={styles.snapshotSection}>ON-DEVICE · APPLE VISION</Text>
+              <Text selectable style={styles.ocrText}>{ocrResult?.text || 'No readable text was detected in this image.'}</Text>
+              <Text style={styles.snapshotFootnote}>The selected image was processed on this iPhone. This phase does not upload it to a server. Results may be incomplete; verify important text against the original image.</Text>
             </ScrollView>
           </View>
         </View>
@@ -376,6 +451,7 @@ const styles = StyleSheet.create({
   snapshotParagraph: { color: palette.textSecondary, fontSize: 13, lineHeight: 20, marginBottom: 10 },
   snapshotLink: { color: palette.blue, fontSize: 11, marginBottom: 7 },
   snapshotFootnote: { color: palette.muted, fontSize: 10, lineHeight: 15, marginTop: 18, marginBottom: 20 },
+  ocrText: { color: palette.textSecondary, fontSize: 14, lineHeight: 22, marginTop: 12 },
   toolIcon: { color: palette.text, fontSize: 25, fontWeight: '500' },
   toolLabel: { color: palette.textSecondary, fontSize: 10, fontWeight: '600' },
   activeIcon: { color: '#FFD166' },
