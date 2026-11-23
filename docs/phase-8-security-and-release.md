@@ -12,7 +12,7 @@
 - RLS enabled on user-owned tables; foreign keys cascade on Auth user deletion.
 - AI functions do not persist page snapshots, chat prompts, OCR images or outputs.
 
-## Release blockers — do not claim production-ready
+## Known implementation gaps\n- Local history and bookmarks currently use AsyncStorage and are not encrypted at rest. Replace with an encrypted local database/storage strategy before handling sensitive browsing data in production.\n- The current UI is dark-first; a complete light theme and large-text/VoiceOver audit remain outstanding.\n- Tabs reload their URL when switched rather than restoring each WebView's full in-memory navigation state.\n- Manual domain locks are server-enforced only after the user syncs them; client-side checks block locally before sync.\n- The web deployment is a static preview page, not the native browser experience.\n\n## Release blockers — do not claim production-ready
 - [ ] Dedicated iBuddy Supabase project created and selected.
 - [ ] Migrations applied and RLS tested with two distinct accounts.
 - [ ] AI provider endpoint/model verified for text and image input; secrets configured.
