@@ -66,7 +66,7 @@ function hostMatches(host: string, domain: string): boolean {
 export async function assertPageUnlocked(admin: SupabaseClient, userId: string, rawUrl: string): Promise<Response | null> {
   let parsed: URL;
   try { parsed = new URL(rawUrl); } catch { return json({ error: "A valid page URL is required." }, 400); }
-  if (parsed.protocol !== "https:") return json({ error: "Only HTTPS page content is accepted." }, 400);
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password) return json({ error: "Only credential-free HTTPS page content is accepted." }, 400);
   const host = parsed.hostname.toLowerCase();
   if (AUTOMATIC_LOCKED_HOSTS.some((domain) => hostMatches(host, domain)) ||
       (hostMatches(host, "docs.google.com") && /^\/forms(?:\/|$)/i.test(parsed.pathname))) {
