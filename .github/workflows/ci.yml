@@ -15,13 +15,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Check Expo dependency compatibility
         run: npx expo install --check
-      - name: Lint
-        run: npm run lint
+      - name: Set up Deno\n        uses: denoland/setup-deno@v2\n      - name: Lint Edge Functions\n        run: deno lint supabase/functions\n      - name: Type-check Edge Functions\n        run: deno check supabase/functions/analyze-page/index.ts supabase/functions/chat/index.ts supabase/functions/ocr-fallback/index.ts supabase/functions/delete-account/index.ts\n      - name: Lint\n        run: npm run lint
       - name: TypeScript
         run: npm run typecheck
       - name: Unit tests
