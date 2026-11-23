@@ -25,6 +25,7 @@ import { resolveAddressInput } from '@/browser/url';
 import { getHostname, isDomainLocked } from '@/policy/assessment-lock';
 import { useBrowserStore, type Bookmark, type HistoryEntry } from '@/state/browser-store';
 import { useAnalysisStore } from '@/state/analysis-store';
+import { requestServerOcr } from '@/analysis/ai-client';
 
 type ListMode = 'history' | 'bookmarks' | null;
 
@@ -57,6 +58,9 @@ export default function BrowserScreen() {
   const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
   const [ocrVisible, setOcrVisible] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [serverOcrLoading, setServerOcrLoading] = useState(false);
+  const [serverOcrText, setServerOcrText] = useState<string | null>(null);
+  const [selectedOcrImage, setSelectedOcrImage] = useState<{ base64: string; mimeType: 'image/jpeg' | 'image/png' | 'image/webp' } | null>(null);
   const extractionRequestId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -66,6 +70,8 @@ export default function BrowserScreen() {
     setPageSnapshot(null);
     setSnapshotVisible(false);
     setAnalysisSnapshot(null);
+    setSelectedOcrImage(null);
+    setServerOcrText(null);
   }, [activeTab.id, activeTab.url, setAnalysisSnapshot]);
 
   const locked = useMemo(() => isDomainLocked(activeTab.url, lockedDomains), [activeTab.url, lockedDomains]);
@@ -153,6 +159,10 @@ export default function BrowserScreen() {
         Alert.alert('Image unavailable', 'The selected image could not be read. Choose another image.');
         return;
       }
+      const selectedAsset = selection.assets[0];
+      const mimeType = selectedAsset?.mimeType === 'image/png' ? 'image/png' : selectedAsset?.mimeType === 'image/webp' ? 'image/webp' : 'image/jpeg';
+      setSelectedOcrImage({ base64: base64Image, mimeType });
+      setServerOcrText(null);
       setOcrLoading(true);
       const result = await recognizeImageText(base64Image);
       setOcrResult(result);
@@ -162,6 +172,28 @@ export default function BrowserScreen() {
     } finally {
       setOcrLoading(false);
     }
+  };
+
+  const requestServerOcrWithConsent = () => {
+    if (locked || !selectedOcrImage) return;
+    Alert.alert(
+      'Send selected image for OCR?',
+      'This uploads the image you selected to iBuddy’s secure server and configured vision provider for text recognition. It is not saved by iBuddy. Do not upload private or sensitive images.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Upload for OCR', onPress: async () => {
+          setServerOcrLoading(true);
+          try {
+            const result = await requestServerOcr(activeTab.url, selectedOcrImage.mimeType, selectedOcrImage.base64);
+            setServerOcrText(result.text);
+          } catch (error) {
+            Alert.alert('Server OCR unavailable', error instanceof Error ? error.message : 'The image could not be processed.');
+          } finally {
+            setServerOcrLoading(false);
+          }
+        } },
+      ],
+    );
   };
 
   const onPageSnapshotMessage = (event: WebViewMessageEvent) => {
@@ -389,11 +421,13 @@ export default function BrowserScreen() {
           <View style={styles.modalSheet}>
             <View style={styles.modalHeading}>
               <Text style={styles.modalTitle}>Image text recognition</Text>
-              <Pressable onPress={() => setOcrVisible(false)}><Text style={styles.modalClose}>Done</Text></Pressable>
+              <Pressable onPress={() => { setOcrVisible(false); setSelectedOcrImage(null); setServerOcrText(null); }}><Text style={styles.modalClose}>Done</Text></Pressable>
             </View>
             <ScrollView>
               <Text style={styles.snapshotSection}>ON-DEVICE · APPLE VISION</Text>
               <Text selectable style={styles.ocrText}>{ocrResult?.text || 'No readable text was detected in this image.'}</Text>
+              {selectedOcrImage && !locked ? <Pressable disabled={serverOcrLoading} style={styles.primaryButton} onPress={requestServerOcrWithConsent}><Text style={styles.primaryButtonText}>{serverOcrLoading ? 'Uploading for OCR…' : 'Try secure server OCR'}</Text></Pressable> : null}
+              {serverOcrText ? <><Text style={styles.snapshotSection}>SERVER VISION OCR</Text><Text selectable style={styles.ocrText}>{serverOcrText}</Text></> : null}
               <Text style={styles.snapshotFootnote}>The selected image was processed on this iPhone. This phase does not upload it to a server. Results may be incomplete; verify important text against the original image.</Text>
             </ScrollView>
           </View>
