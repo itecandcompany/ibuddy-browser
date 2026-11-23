@@ -6,7 +6,7 @@ Deno.serve(async (req) => {
   const auth = await authenticate(req); if (auth instanceof Response) return auth;
   const body = await readBoundedJson(req, 1000); if (body instanceof Response) return body;
   const payload = body.value;
-  if (typeof body !== "object" || body === null || (payload as Record<string, unknown>).confirm !== "DELETE_MY_ACCOUNT") {
+  if (typeof payload !== "object" || payload === null || (payload as Record<string, unknown>).confirm !== "DELETE_MY_ACCOUNT") {
     return json({ error: "Explicit account deletion confirmation is required." }, 400);
   }
   const { error } = await auth.admin.auth.admin.deleteUser(auth.userId);
