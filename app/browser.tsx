@@ -232,23 +232,16 @@ export default function BrowserScreen() {
 
   const showLockInfo = () => {
     if (!hostname) return;
-    const isManual = lockedDomains.includes(hostname);
-    if (locked && !isManual) {
-      Alert.alert('Assessment Lock is active', 'This page matches iBuddy’s protected assessment-domain policy. Page analysis features are disabled on protected pages and cannot be bypassed.');
+    if (locked) {
+      Alert.alert('Assessment Lock is active', 'Analysis is disabled on this protected page. To change a manual domain rule, leave this page and use Settings. Automatic protected-domain rules cannot be removed.');
       return;
     }
     Alert.alert(
-      isManual ? 'Unlock this domain?' : 'Lock this domain?',
-      isManual
-        ? 'Remove your manual Assessment Lock for this domain? Automatic protection rules still apply.'
-        : `Add ${hostname} to your protected-domain list? Pages on this domain will be marked as locked.`,
+      'Lock this domain?',
+      `Add ${hostname} to your protected-domain list? Pages on this domain will be marked as locked.`,
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: isManual ? 'Unlock' : 'Lock domain',
-          style: isManual ? 'destructive' : 'default',
-          onPress: () => toggleDomainLock(hostname),
-        },
+        { text: 'Lock domain', onPress: () => toggleDomainLock(hostname) },
       ],
     );
   };
