@@ -11,7 +11,7 @@ export default function SettingsScreen(){
  const [busy,setBusy]=useState(false);
  const lockedDomains=useBrowserStore(s=>s.lockedDomains);
  const supabase=getSupabaseClient();
- useEffect(()=>{let live=true;if(supabase)supabase.auth.getUser().then(({data})=>{if(live)setEmail(data.user?.email??null);});return()=>{live=false;};},[]);
+ useEffect(()=>{let live=true;if(supabase)supabase.auth.getUser().then(({data})=>{if(live)setEmail(data.user?.email??null);});return()=>{live=false;};},[supabase]);
  const syncLocks=async()=>{
   if(!supabase){Alert.alert("Not connected","Configure Supabase before syncing Assessment Lock domains.");return;}
   setBusy(true);
@@ -29,7 +29,7 @@ export default function SettingsScreen(){
    {text:"Cancel",style:"cancel"},
    {text:"Delete account",style:"destructive",onPress:async()=>{
     if(!supabase)return;setBusy(true);
-    try{const {error}=await supabase.functions.invoke("delete-account",{body:{confirm:"DELETE_MY_ACCOUNT"}});if(error)throw error;await supabase.auth.signOut();setEmail(null);Alert.alert("Account deleted","Your iBuddy account deletion was confirmed by the server.");router.replace("/");}
+    try{const {error}=await supabase.functions.invoke("delete-account",{body:{confirm:"DELETE_MY_ACCOUNT"}});if(error)throw error;await supabase.auth.signOut({scope:"local"});setEmail(null);Alert.alert("Account deleted","Your iBuddy account deletion was confirmed by the server.");router.replace("/");}
     catch(error){Alert.alert("Deletion failed",error instanceof Error?error.message:"The server did not confirm deletion.");}
     finally{setBusy(false);}
    }}
