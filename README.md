@@ -27,6 +27,7 @@ For an iPhone, use a Mac with Xcode or an EAS development build. Expo Go is not 
 - `docs/architecture.md`
 - `docs/threat-model.md`
 - `docs/phase-2-browser-shell.md`
+- `docs/phase-3-extraction-ocr.md`
 
 ## Verification status
 
