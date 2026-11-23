@@ -20,7 +20,16 @@ iBuddy is an iPhone-first browser with user-triggered page understanding. It onl
 - Tabs retain their own URL/title and mount the active tab in the WebView. Switching tabs currently reloads the selected URL rather than preserving each page's in-memory state; private tabs do not add browsing history.
 - History, bookmarks and user-defined locked domains are persisted locally with AsyncStorage.
 - Assessment Lock is evaluated before any future extraction/OCR/AI work. Google Forms assessment URLs and selected proctoring domains are automatically locked.
-- Phase 2 contains no page extraction, OCR, AI or native bridge.
+- Phase 3 adds explicit user-triggered DOM extraction and a local Apple Vision OCR module for user-selected images. There is no AI provider call or server-side OCR fallback until Phase 4.
+
+## Phase 3 extraction and OCR
+
+- DOM extraction runs only after an explicit user action and only when Assessment Lock is inactive.
+- The injected script reads visible headings, paragraphs/list items, link labels and form labels. It never reads form values, input values, password values, hidden inputs, cookies or browser storage.
+- WebView messages are treated as untrusted, validated with Zod, bounded in size and checked against the active page origin and one-time request ID.
+- User-selected images are passed to an iOS-only local Expo module that uses Apple Vision. Image bytes and OCR output are not uploaded or persisted by this phase.
+- Cross-origin frames, canvas/image text and PDFs may remain unreadable. The UI reports these limitations rather than guessing.
+- Vision-model OCR fallback is intentionally not simulated; it requires the authenticated Edge Function and server integration in Phase 4.
 
 ## Target module boundaries
 
