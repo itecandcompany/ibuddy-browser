@@ -8,6 +8,20 @@ import { getSupabaseClient } from '@/lib/supabase';
 import { palette } from '@/theme/palette';
 
 export default function RootLayout() {
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+    if (AppState.currentState === 'active') supabase.auth.startAutoRefresh();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') supabase.auth.startAutoRefresh();
+      else supabase.auth.stopAutoRefresh();
+    });
+    return () => {
+      subscription.remove();
+      supabase.auth.stopAutoRefresh();
+    };
+  }, []);
+
   return (
     <SafeAreaProvider>
       <StatusBar style="light" backgroundColor={palette.background} />
