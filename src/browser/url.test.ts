@@ -24,7 +24,12 @@ describe('resolveAddressInput', () => {
     expect(resolveAddressInput('http://example.com')).toEqual({ ok: false, reason: 'insecure-http' });
   });
 
-  it('blocks URLs containing embedded credentials', () => {\n    expect(resolveAddressInput('https://user:pass@example.com')).toEqual({ ok: false, reason: 'credential-url' });\n    expect(isHttpsUrl('https://user:pass@example.com')).toBe(false);\n  });\n\n  it('blocks unsupported schemes', () => {
+  it('blocks URLs containing embedded credentials', () => {
+    expect(resolveAddressInput('https://user:pass@example.com')).toEqual({ ok: false, reason: 'credential-url' });
+    expect(isHttpsUrl('https://user:pass@example.com')).toBe(false);
+  });
+
+  it('blocks unsupported schemes', () => {
     expect(resolveAddressInput('javascript:alert(1)')).toEqual({ ok: false, reason: 'unsupported-scheme' });
     expect(resolveAddressInput('file:///etc/passwd')).toEqual({ ok: false, reason: 'unsupported-scheme' });
   });
