@@ -19,12 +19,6 @@
         {
           "applePayEnabled": false
         }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "Allow iBuddy to read an image you choose for on-device text recognition."
-        }
       ]
     ],
     "experiments": {
