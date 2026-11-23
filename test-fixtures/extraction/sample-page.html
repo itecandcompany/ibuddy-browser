@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>iBuddy Extraction Fixture</title></head>
+<body>
+  <main>
+    <h1>Safe Page Extraction</h1>
+    <p>This visible paragraph is safe to include in a local extraction test.</p>
+    <label for="email">Email address</label>
+    <input id="email" type="email" value="DO_NOT_EXTRACT_THIS_VALUE">
+    <label for="password">Password</label>
+    <input id="password" type="password" value="DO_NOT_EXTRACT_THIS_SECRET">
+    <a href="https://example.org/guide?session=should-not-be-copied">Read the guide</a>
+    <div hidden>Hidden content must not be collected.</div>
+    <script>const privateToken = 'DO_NOT_EXTRACT_THIS_TOKEN';</script>
+  </main>
+</body>
+</html>
