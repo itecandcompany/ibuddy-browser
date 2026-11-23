@@ -4,6 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useAnalysisStore } from "@/state/analysis-store";
 import { askPage, explainPage, summarizePage } from "@/analysis/ai-client";
+import { classifyQuestion } from "@/analysis/question-classifier";
+import { extractPageHighlights } from "@/highlights/highlight-extractor";
 import { palette } from "@/theme/palette";
 
 type Message = { role: "user" | "assistant"; content: string };
@@ -14,6 +16,7 @@ export default function AssistantScreen() {
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [busy, setBusy] = useState(false);
+  const [assessmentNotice, setAssessmentNotice] = useState(false);
 
   if (!snapshot) {
     return <SafeAreaView style={styles.safe}><Text style={styles.title}>No page context</Text><Text style={styles.muted}>Read an unlocked page first, then open iBuddy Study.</Text><Pressable style={styles.primary} onPress={() => router.back()}><Text style={styles.primaryText}>Back to browser</Text></Pressable></SafeAreaView>;
@@ -52,7 +55,7 @@ export default function AssistantScreen() {
             <Text style={styles.secondaryText}>Summarize this page</Text>
           </Pressable>
           {summary ? <View style={styles.response}><Text style={styles.section}>PAGE SUMMARY</Text><Text style={styles.responseText}>{summary}</Text></View> : null}
-          <Text style={styles.section}>ASK ABOUT THE PAGE</Text>
+          <Text style={styles.section}>KEY TERMS FROM THIS PAGE</Text>\n          {extractPageHighlights(snapshot).map((item) => <View key={item.term} style={styles.highlight}><Text style={styles.highlightTerm}>{item.term}</Text><Text style={styles.highlightExcerpt}>{item.excerpt}</Text></View>)}\n          {assessmentNotice ? <Text style={styles.assessmentNotice}>This looks assessment-related. iBuddy will teach concepts and general methods, not supply a direct answer.</Text> : null}\n          <Text style={styles.section}>ASK ABOUT THE PAGE</Text>
           <TextInput value={question} onChangeText={setQuestion} placeholder="Ask for a concept explanation…" placeholderTextColor={palette.muted} multiline style={styles.input} />
           <Pressable disabled={busy || !question.trim()} style={styles.primary} onPress={send}><Text style={styles.primaryText}>Ask iBuddy</Text></Pressable>
           <Text style={styles.section}>CONVERSATION</Text>
@@ -74,7 +77,7 @@ const styles = StyleSheet.create({
   muted: { color: palette.muted, fontSize: 12, marginTop: 4 },
   body: { flex: 1 },
   content: { paddingBottom: 36, gap: 12 },
-  notice: { color: "#B7C9E8", backgroundColor: "#172846", padding: 12, borderRadius: 12, lineHeight: 18, fontSize: 12 },
+  notice: { color: "#B7C9E8", backgroundColor: "#172846", padding: 12, borderRadius: 12, lineHeight: 18, fontSize: 12 },\n  highlight: { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1, borderRadius: 10, padding: 10 },\n  highlightTerm: { color: palette.blue, fontWeight: "900", textTransform: "capitalize" },\n  highlightExcerpt: { color: palette.textSecondary, fontSize: 12, lineHeight: 18, marginTop: 3 },\n  assessmentNotice: { color: "#FFD39B", backgroundColor: "#392A20", borderRadius: 10, padding: 11, fontSize: 12, lineHeight: 18 },
   secondary: { borderWidth: 1, borderColor: palette.blue, borderRadius: 12, padding: 13, alignItems: "center" },
   secondaryText: { color: palette.blue, fontWeight: "800" },
   primary: { backgroundColor: palette.blue, borderRadius: 12, padding: 14, alignItems: "center" },
