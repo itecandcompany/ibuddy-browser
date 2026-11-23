@@ -142,15 +142,44 @@ async function requestGeminiCompletion(
   return content.slice(0,16_000);
 }
 
+async function requestOpenRouterCompletion(
+  messages:Array<{role:"system"|"user"|"assistant";content:string|Array<Record<string,unknown>>}>,
+  maxTokens:number,
+):Promise<string>{
+  const apiKey=Deno.env.get("OPENROUTER_API_KEY");
+  if(!apiKey) throw new Error("OpenRouter backup is not configured. Add OPENROUTER_API_KEY in Supabase Edge Function Secrets.");
+  const model=Deno.env.get("OPENROUTER_MODEL")??"openrouter/free";
+  const response=await fetch("https://openrouter.ai/api/v1/chat/completions",{
+    method:"POST",
+    headers:{
+      "Authorization":`Bearer ${apiKey}`,
+      "Content-Type":"application/json",
+      "X-Title":"iBuddy Browser",
+    },
+    body:JSON.stringify({model,messages,temperature:0.2,max_tokens:maxTokens}),
+    signal:AbortSignal.timeout(45_000),
+  });
+  if(!response.ok){
+    if(response.status===429) throw new Error("OpenRouter's free request limit or provider capacity has been reached. Please wait and retry.");
+    if(response.status===401||response.status===403) throw new Error("OpenRouter rejected the API key. Check OPENROUTER_API_KEY in Supabase Secrets.");
+    throw new Error(`OpenRouter request failed (HTTP ${response.status}).`);
+  }
+  const payload=await response.json();
+  const content=payload?.choices?.[0]?.message?.content;
+  if(typeof content!=="string"||!content.trim()) throw new Error("OpenRouter returned no readable text.");
+  return content.slice(0,16_000);
+}
+
 export async function callModel(
   messages:Array<{role:"system"|"user"|"assistant";content:string|Array<Record<string,unknown>>}>,
   maxTokens=900,
 ):Promise<string>{
+  const failures:string[]=[];
   try{return await requestGeminiCompletion(messages,maxTokens);}
-  catch(error){
-    const message=error instanceof Error?error.message:"Unknown Gemini error.";
-    throw new Error(`iBuddy AI is temporarily unavailable. ${message}`);
-  }
+  catch(error){failures.push("Gemini: "+(error instanceof Error?error.message:"request failed"));}
+  try{return await requestOpenRouterCompletion(messages,maxTokens);}
+  catch(error){failures.push("OpenRouter: "+(error instanceof Error?error.message:"request failed"));}
+  throw new Error("iBuddy AI is temporarily unavailable. "+failures.join(" "));
 }
 
 export function redactText(value: string): string {
