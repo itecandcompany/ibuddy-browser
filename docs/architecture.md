@@ -29,7 +29,7 @@ iBuddy is an iPhone-first browser with user-triggered page understanding. It onl
 - WebView messages are treated as untrusted, validated with Zod, bounded in size and checked against the active page origin and one-time request ID.
 - User-selected images are passed to an iOS-only local Expo module that uses Apple Vision. Image bytes and OCR output are not uploaded or persisted by this phase.
 - Cross-origin frames, canvas/image text and PDFs may remain unreadable. The UI reports these limitations rather than guessing.
-- Vision-model OCR fallback is intentionally not simulated; it requires the authenticated Edge Function and server integration in Phase 4.
+- Server-side vision OCR fallback is available through an authenticated Edge Function after a separate user upload confirmation. It is not called automatically.
 
 ## Target module boundaries
 
@@ -63,3 +63,18 @@ iBuddy is an iPhone-first browser with user-triggered page understanding. It onl
 - Some pages do not expose complete DOM text (cross-origin frames, canvas, PDFs and image-only content).
 - Native Apple Vision integration requires an iOS development build and native module implementation.
 - Real-device EAS/Xcode build and runtime verification are required before claiming iPhone compatibility.
+
+
+## Phase 4–6 AI, identity and data
+- Authenticated Supabase Edge Functions provide summary, grounded chat, vision OCR fallback and account deletion.
+- AI provider endpoint/model/key are server secrets; the app only sends requests with a Supabase user session.
+- Rate limits are enforced by a service-role-only atomic Postgres function.
+- Server-side lock policy checks automatic protected domains and user-synced manual locks before model calls.
+- Email/password and Apple sign-in use Supabase Auth; refresh tokens are stored with Expo SecureStore.
+- RLS policies scope profiles, settings, bookmarks, history, conversations, messages, analyses and lock records to the authenticated owner.
+- No page text, OCR image, OCR result, chat prompt or AI response is stored by default.
+
+## Phase 7–8 readiness
+- GitHub Actions validates dependency compatibility, lint, TypeScript, Jest and Expo config.
+- EAS development, preview and production profiles are defined.
+- Physical iPhone verification and App Store/security checklists are documented. Native builds, backend deployment and independent security review remain outstanding.
