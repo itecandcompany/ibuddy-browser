@@ -238,6 +238,7 @@ export default function BrowserScreen() {
             <Text style={styles.tagline}>PRIVATE BY DESIGN</Text>
           </View>
           <View style={styles.headerSpacer} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Open settings" style={styles.headerButton} onPress={() => router.push("/settings")}><Text style={styles.headerButtonText}>⚙</Text></Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel="Open tabs" style={styles.headerButton} onPress={() => Alert.alert('Your tabs', tabs.map((tab, index) => `${index + 1}. ${tab.privateMode ? 'Private · ' : ''}${tab.title}`).join('\n'), [{ text: 'Close' }, { text: 'New tab', onPress: () => addTab(false) }, { text: 'Private tab', onPress: () => addTab(true) }])}>
             <Text style={styles.headerButtonText}>{tabs.length} ▢</Text>
           </Pressable>
