@@ -1,6 +1,4 @@
-import type { ReactNode } from "react";
-
-export function AppleSignInButton(): ReactNode {
+export function AppleSignInButton(_props: { onPress: () => void }) {
   return null;
 }
 
