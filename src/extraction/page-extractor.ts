@@ -1,8 +1,7 @@
 import { z } from 'zod';
 
 const safeHttpsUrl = z.string().url().refine((value) => {
-  try { return new URL(value).protocol === 'https:'; } catch { return false; }
-  try { const parsed = new URL(value); return parsed.username === '' && parsed.password === ''; } catch { return false; }
+  try { const parsed = new URL(value); return parsed.protocol === 'https:' && parsed.username === '' && parsed.password === ''; } catch { return false; }
 }, 'Only credential-free HTTPS URLs are accepted');
 
 export const pageSnapshotSchema = z.object({
