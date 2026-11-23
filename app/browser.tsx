@@ -109,7 +109,7 @@ export default function BrowserScreen() {
   const onPageSnapshotMessage = (event: WebViewMessageEvent) => {
     const messageUrl = event.nativeEvent.url;
     try {
-      if (!messageUrl || new URL(messageUrl).origin !== new URL(activeTab.url).origin) {
+      if (!messageUrl || isDomainLocked(messageUrl, lockedDomains) || new URL(messageUrl).origin !== new URL(activeTab.url).origin) {
         setExtracting(false);
         return;
       }
