@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import * as AppleAuthentication from "expo-apple-authentication";
+import { AppleSignInButton, getAppleIdentityToken } from "@/auth/apple-sign-in";
 import { getSupabaseClient } from "@/lib/supabase";
 import { palette } from "@/theme/palette";
 
@@ -31,9 +31,8 @@ export default function SignInScreen() {
     if(!supabase){Alert.alert("Supabase is not configured","Configure the Supabase app credentials first.");return;}
     setBusy(true);
     try{
-      const credential=await AppleAuthentication.signInAsync({requestedScopes:[AppleAuthentication.AppleAuthenticationScope.EMAIL,AppleAuthentication.AppleAuthenticationScope.FULL_NAME]});
-      if(!credential.identityToken)throw new Error("Apple did not return an identity token.");
-      const {error}=await supabase.auth.signInWithIdToken({provider:"apple",token:credential.identityToken});
+      const identityToken=await getAppleIdentityToken();
+      const {error}=await supabase.auth.signInWithIdToken({provider:"apple",token:identityToken});
       if(error)throw error;
       router.replace("/");
     }catch(error){
@@ -51,7 +50,7 @@ export default function SignInScreen() {
       <TextInput value={password} onChangeText={setPassword} placeholder="Password (8+ characters)" placeholderTextColor={palette.muted} secureTextEntry style={styles.input}/>
       <Pressable disabled={busy} style={styles.primary} onPress={()=>submit("signin")}><Text style={styles.primaryText}>Sign in</Text></Pressable>
       <Pressable disabled={busy} style={styles.secondary} onPress={()=>submit("signup")}><Text style={styles.secondaryText}>Create account</Text></Pressable>
-      {Platform.OS==="ios"?<AppleAuthentication.AppleAuthenticationButton buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN} buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE} cornerRadius={12} style={styles.apple} onPress={signInApple}/>:null}
+      {Platform.OS==="ios"?<AppleSignInButton onPress={signInApple}/>:null}
       {busy?<ActivityIndicator color={palette.blue}/>:null}
       <Pressable onPress={()=>router.back()}><Text style={styles.back}>Continue browsing</Text></Pressable>
       <Text style={styles.footnote}>AI features require sign-in. Provider keys remain on the server. Page content is not saved unless you explicitly choose to save it.</Text>
