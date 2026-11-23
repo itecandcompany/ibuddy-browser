@@ -11,6 +11,8 @@ export default function SettingsScreen(){
  const [busy,setBusy]=useState(false);
  const lockedDomains=useBrowserStore(s=>s.lockedDomains);
  const toggleDomainLock=useBrowserStore(s=>s.toggleDomainLock);
+ const clearBrowsingData=useBrowserStore(s=>s.clearBrowsingData);
+ const clearLocalData=useBrowserStore(s=>s.clearLocalData);
  const supabase=getSupabaseClient();
  useEffect(()=>{let live=true;if(supabase)supabase.auth.getUser().then(({data})=>{if(live)setEmail(data.user?.email??null);});return()=>{live=false;};},[supabase]);
  const syncLocks=async()=>{
@@ -30,7 +32,7 @@ export default function SettingsScreen(){
    {text:"Cancel",style:"cancel"},
    {text:"Delete account",style:"destructive",onPress:async()=>{
     if(!supabase)return;setBusy(true);
-    try{const {error}=await supabase.functions.invoke("delete-account",{body:{confirm:"DELETE_MY_ACCOUNT"}});if(error)throw error;await supabase.auth.signOut({scope:"local"});setEmail(null);Alert.alert("Account deleted","Your iBuddy account deletion was confirmed by the server.");router.replace("/");}
+    try{const {error}=await supabase.functions.invoke("delete-account",{body:{confirm:"DELETE_MY_ACCOUNT"}});if(error)throw error;clearLocalData();await supabase.auth.signOut({scope:"local"});setEmail(null);Alert.alert("Account deleted","Your server account and local browsing data have been cleared.");router.replace("/");}
     catch(error){Alert.alert("Deletion failed",error instanceof Error?error.message:"The server did not confirm deletion.");}
     finally{setBusy(false);}
    }}
@@ -38,7 +40,7 @@ export default function SettingsScreen(){
  };
  return <SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.content}>
   <Pressable onPress={()=>router.back()}><Text style={styles.back}>‹ Browser</Text></Pressable>
-  <Text style={styles.title}>Settings & privacy</Text>
+  <Text style={styles.title}>Settings & privacy</Text><Pressable onPress={()=>router.push("/privacy")}><Text style={styles.back}>Read privacy details ›</Text></Pressable>
   <View style={styles.card}><Text style={styles.label}>ACCOUNT</Text><Text style={styles.value}>{email??"Not signed in"}</Text><Pressable style={styles.button} onPress={()=>router.push("/sign-in")}><Text style={styles.buttonText}>{email?"Switch account":"Sign in / create account"}</Text></Pressable>{email?<Pressable style={styles.secondary} onPress={signOut}><Text style={styles.secondaryText}>Sign out</Text></Pressable>:null}</View>
   <View style={styles.card}><Text style={styles.label}>ASSESSMENT LOCK</Text><Text style={styles.value}>{lockedDomains.length} manually locked domain(s)</Text>{lockedDomains.map(domain=><View key={domain} style={styles.domainRow}><Text style={styles.domain}>• {domain}</Text><Pressable onPress={()=>toggleDomainLock(domain)}><Text style={styles.remove}>Remove</Text></Pressable></View>)}<Text style={styles.note}>Automatic protected-domain rules remain active. Manual locks are local until synced.</Text><Pressable disabled={busy||!email} style={styles.button} onPress={syncLocks}><Text style={styles.buttonText}>Sync locked domains to server</Text></Pressable></View>
   <View style={styles.card}><Text style={styles.label}>DATA & RETENTION</Text><Text style={styles.note}>AI requests are not stored by the AI functions. Browsing history and bookmarks currently remain in local app storage. Private tabs do not add history. Saved cloud analyses and history sync are not enabled by default.</Text><Text style={styles.note}>You can delete your account and server-owned records below. Clearing local app storage is separate and can be done from iOS Settings by removing the app.</Text></View>
