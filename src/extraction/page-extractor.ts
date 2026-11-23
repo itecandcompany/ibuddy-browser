@@ -12,9 +12,9 @@ export const pageSnapshotSchema = z.object({
   headings: z.array(z.string().max(500)).max(40),
   paragraphs: z.array(z.string().max(1200)).max(80),
   formLabels: z.array(z.string().max(300)).max(40),
-  links: z.array(z.object({ label: z.string().max(300), url: safeHttpsUrl })).max(60),
+  links: z.array(z.object({ label: z.string().max(300), url: safeHttpsUrl }).strict()).max(60),
   limitations: z.array(z.enum(['cross-origin-frames-not-read', 'canvas-or-image-text-not-read', 'pdf-content-may-not-be-readable'])).max(3),
-});
+}).strict();
 
 export type PageSnapshot = z.infer<typeof pageSnapshotSchema>;
 
