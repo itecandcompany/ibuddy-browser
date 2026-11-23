@@ -19,6 +19,7 @@ describe('page extraction contract', () => {
   it('rejects unknown message types, HTTP URLs and oversized arrays', () => {
     expect(pageSnapshotSchema.safeParse({ ...validSnapshot, type: 'OTHER' }).success).toBe(false);
     expect(pageSnapshotSchema.safeParse({ ...validSnapshot, url: 'http://example.org' }).success).toBe(false);
+    expect(pageSnapshotSchema.safeParse({ ...validSnapshot, url: 'https://user:pass@example.org' }).success).toBe(false);
     expect(pageSnapshotSchema.safeParse({ ...validSnapshot, paragraphs: Array(81).fill('x') }).success).toBe(false);
   });
   it('rejects unexpected payload fields such as form values', () => {
