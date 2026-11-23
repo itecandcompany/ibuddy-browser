@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView, type WebViewNavigation } from 'react-native-webview';
-import type { WebView as WebViewType } from 'react-native-webview';
+import type { WebView as WebViewType, WebViewMessageEvent } from 'react-native-webview';
+import { buildPageExtractionScript, pageSnapshotSchema, type PageSnapshot } from '@/extraction/page-extractor';
 import { palette } from '@/theme/palette';
 import { resolveAddressInput } from '@/browser/url';
 import { getHostname, isDomainLocked } from '@/policy/assessment-lock';
@@ -45,6 +46,10 @@ export default function BrowserScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [securityMessage, setSecurityMessage] = useState<string | null>(null);
   const [listMode, setListMode] = useState<ListMode>(null);
+  const [pageSnapshot, setPageSnapshot] = useState<PageSnapshot | null>(null);
+  const [snapshotVisible, setSnapshotVisible] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const extractionRequestId = useRef<string | null>(null);
 
   useEffect(() => {
     setAddress(activeTab.url);
@@ -86,6 +91,42 @@ export default function BrowserScreen() {
     }
   };
 
+  const extractVisiblePage = () => {
+    if (locked) {
+      Alert.alert('Assessment Lock is active', 'Page reading and AI analysis are disabled on this protected page.');
+      return;
+    }
+    if (loading || !webViewRef.current) {
+      Alert.alert('Page is not ready', 'Wait for the page to finish loading, then try again.');
+      return;
+    }
+    const requestId = 'read-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+    extractionRequestId.current = requestId;
+    setExtracting(true);
+    webViewRef.current.injectJavaScript(buildPageExtractionScript(requestId));
+  };
+
+  const onPageSnapshotMessage = (event: WebViewMessageEvent) => {
+    const messageUrl = event.nativeEvent.url;
+    try {
+      if (!messageUrl || new URL(messageUrl).origin !== new URL(activeTab.url).origin) {
+        setExtracting(false);
+        return;
+      }
+      const raw = JSON.parse(event.nativeEvent.data) as unknown;
+      const parsed = pageSnapshotSchema.safeParse(raw);
+      if (!parsed.success || parsed.data.requestId !== extractionRequestId.current) {
+        setExtracting(false);
+        return;
+      }
+      setPageSnapshot(parsed.data);
+      setSnapshotVisible(true);
+      setExtracting(false);
+    } catch {
+      setExtracting(false);
+      Alert.alert('Could not read this page', 'The page did not return a valid readable-content response. No content was sent to a server.');
+    }
+  };
   const selectEntry = (entry: HistoryEntry | Bookmark) => {
     setListMode(null);
     setAddress(entry.url);
@@ -199,6 +240,7 @@ export default function BrowserScreen() {
             onLoadProgress={({ nativeEvent }) => setProgress(nativeEvent.progress)}
             onLoadEnd={() => setLoading(false)}
             onNavigationStateChange={onNavigationStateChange}
+            onMessage={onPageSnapshotMessage}
             onShouldStartLoadWithRequest={(request) => {
               if (request.url.startsWith('https://')) return true;
               if (request.url === 'about:blank') return true;
@@ -231,6 +273,7 @@ export default function BrowserScreen() {
         <Pressable accessibilityRole="button" accessibilityLabel="Go forward" style={styles.toolButton} onPress={() => webViewRef.current?.goForward()}><Text style={styles.toolIcon}>›</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Reload page" style={styles.toolButton} onPress={() => { setErrorMessage(null); webViewRef.current?.reload(); }}><Text style={styles.toolLabel}>Reload</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Toggle bookmark" style={styles.toolButton} onPress={() => toggleBookmark({ url: activeTab.url, title: activeTab.title })}><Text style={[styles.toolIcon, isBookmarked && styles.activeIcon]}>{isBookmarked ? '★' : '☆'}</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Read visible page" disabled={locked || loading} style={[styles.toolButton, (locked || loading) && styles.disabledTool]} onPress={extractVisiblePage}><Text style={styles.toolLabel}>{extracting ? 'Reading…' : 'Read page'}</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="History" style={styles.toolButton} onPress={() => setListMode('history')}><Text style={styles.toolLabel}>History</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Bookmarks" style={styles.toolButton} onPress={() => setListMode('bookmarks')}><Text style={styles.toolLabel}>Saved</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Assessment Lock settings" style={styles.toolButton} onPress={showLockInfo}><Text style={[styles.toolLabel, locked && styles.activeIcon]}>Lock</Text></Pressable>
@@ -249,6 +292,28 @@ export default function BrowserScreen() {
         <Pressable style={styles.privateTabButton} onPress={() => addTab(true)}><Text style={styles.privateTabText}>Private</Text></Pressable>
       </View>
 
+      <Modal visible={snapshotVisible} transparent animationType="slide" onRequestClose={() => setSnapshotVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeading}>
+              <Text style={styles.modalTitle}>Page reading</Text>
+              <Pressable onPress={() => setSnapshotVisible(false)}><Text style={styles.modalClose}>Done</Text></Pressable>
+            </View>
+            <ScrollView>
+              <Text style={styles.snapshotTitle}>{pageSnapshot?.title || 'Untitled page'}</Text>
+              <Text style={styles.snapshotUrl}>{pageSnapshot?.url}</Text>
+              {!!pageSnapshot?.headings.length && <Text style={styles.snapshotSection}>HEADINGS</Text>}
+              {pageSnapshot?.headings.map((item, index) => <Text key={'h-' + index} style={styles.snapshotHeading}>{item}</Text>)}
+              {!!pageSnapshot?.paragraphs.length && <Text style={styles.snapshotSection}>VISIBLE TEXT</Text>}
+              {pageSnapshot?.paragraphs.map((item, index) => <Text key={'p-' + index} style={styles.snapshotParagraph}>{item}</Text>)}
+              {!!pageSnapshot?.links.length && <Text style={styles.snapshotSection}>LINKS</Text>}
+              {pageSnapshot?.links.map((item, index) => <Text key={'l-' + index} style={styles.snapshotLink}>{item.label} · {item.url}</Text>)}
+              {pageSnapshot && pageSnapshot.headings.length + pageSnapshot.paragraphs.length === 0 && <Text style={styles.emptyText}>No readable visible text was found on this page.</Text>}
+              <Text style={styles.snapshotFootnote}>This preview is read-only and remains on this device. Form entries, hidden fields, cookies and browser storage are not collected.</Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
       <Modal visible={listMode !== null} transparent animationType="slide" onRequestClose={() => setListMode(null)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
@@ -303,6 +368,14 @@ const styles = StyleSheet.create({
   primaryButtonText: { color: palette.white, fontWeight: '700' },
   toolbar: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', backgroundColor: palette.background, borderTopWidth: 1, borderTopColor: palette.border, paddingVertical: 7 },
   toolButton: { minWidth: 34, minHeight: 38, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  disabledTool: { opacity: 0.35 },
+  snapshotTitle: { color: palette.text, fontSize: 18, fontWeight: '800', marginTop: 16 },
+  snapshotUrl: { color: palette.muted, fontSize: 10, marginTop: 5, marginBottom: 14 },
+  snapshotSection: { color: palette.blue, fontSize: 10, fontWeight: '800', letterSpacing: 1.2, marginTop: 16, marginBottom: 7 },
+  snapshotHeading: { color: palette.text, fontSize: 14, fontWeight: '700', marginBottom: 7 },
+  snapshotParagraph: { color: palette.textSecondary, fontSize: 13, lineHeight: 20, marginBottom: 10 },
+  snapshotLink: { color: palette.blue, fontSize: 11, marginBottom: 7 },
+  snapshotFootnote: { color: palette.muted, fontSize: 10, lineHeight: 15, marginTop: 18, marginBottom: 20 },
   toolIcon: { color: palette.text, fontSize: 25, fontWeight: '500' },
   toolLabel: { color: palette.textSecondary, fontSize: 10, fontWeight: '600' },
   activeIcon: { color: '#FFD166' },
