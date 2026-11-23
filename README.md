@@ -43,6 +43,7 @@ Read [Phase 4 backend setup](docs/phase-4-ai-backend.md). Apply migrations in or
 - `docs/phase-3-extraction-ocr.md`
 - `docs/phase-4-ai-backend.md`
 - `docs/phase-5-study-tools.md`
+- `docs/phase-6-auth-and-privacy.md`
 - `docs/phase-7-device-verification.md`
 - `docs/phase-8-security-and-release.md`
 
