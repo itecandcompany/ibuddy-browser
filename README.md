@@ -1,26 +1,39 @@
 # iBuddy Browser
 
-An iPhone-first browser built with Expo, React Native and TypeScript, with a privacy-first path toward user-triggered AI page understanding.
+An iPhone-first browser built with Expo, React Native and TypeScript, with privacy-first, user-triggered page understanding.
 
-## Current implementation
+## Implemented in source
 
-- **Phase 1 — Foundation:** Expo Router, strict TypeScript, shared theme tokens and architecture/threat-model documentation.
-- **Phase 2 — Browser shell:** HTTPS-only WebView browsing, URL/search handling, tabs, private tabs, local history and bookmarks, and Assessment Lock domain policy.
-- **Phase 3 — Extraction and OCR:** user-triggered visible-page extraction with Zod validation, plus an iOS native Apple Vision module for user-selected images.
-
-Page extraction and OCR are user-triggered and disabled on protected assessment pages. Phase 3 does not generate AI answers or upload page/image content; the server-side vision fallback is deferred to Phase 4.
+- **Phase 1 — Foundation:** Expo Router, strict TypeScript, theme tokens, architecture and threat model.
+- **Phase 2 — Browser shell:** HTTPS-only WebView, address/search, tabs, private tabs, local history/bookmarks and Assessment Lock.
+- **Phase 3 — Extraction and OCR:** user-triggered visible-page extraction, strict Zod validation and native Apple Vision OCR for user-selected images.
+- **Phase 4 — AI backend:** authenticated Supabase Edge Functions for page summaries, grounded chat, opt-in server vision OCR and confirmed account deletion; rate limiting and server-side lock checks.
+- **Phase 5 — Study tools:** question-intent classification, concept-only behavior for assessment-like wording and in-app key-term highlights.
+- **Phase 6 — Auth and privacy:** SecureStore-backed Supabase sessions, email/password and Apple sign-in, RLS migrations, account settings and server-side account deletion.
+- **Phase 7 — Device verification:** EAS profiles, CI workflow and physical-iPhone verification checklist.
+- **Phase 8 — Security and release:** security audit notes, release blockers and App Store preparation checklist.
 
 ## Start locally
 
-Install dependencies, then run the app in an Expo development build:
+1. Copy `.env.example` to `.env` and configure the public Supabase URL and publishable/anon key.
+2. Install dependencies and align Expo package versions:
 
 ```bash
 npm install
 npx expo install --fix
-npx expo run:ios
 ```
 
-For an iPhone, use a Mac with Xcode or an EAS development build. Expo Go is not the target runtime.
+3. Start the development client:
+
+```bash
+npx expo start --dev-client
+```
+
+For a native iPhone build, use EAS Build or a Mac with Xcode. Expo Go is not the target runtime.
+
+## Supabase setup
+
+Read [Phase 4 backend setup](docs/phase-4-ai-backend.md). Apply migrations in order, set AI provider secrets in Supabase Edge Function secrets, and deploy functions with JWT verification enabled. Do not put AI provider keys or service-role credentials in the mobile app.
 
 ## Documentation
 
@@ -28,7 +41,11 @@ For an iPhone, use a Mac with Xcode or an EAS development build. Expo Go is not 
 - `docs/threat-model.md`
 - `docs/phase-2-browser-shell.md`
 - `docs/phase-3-extraction-ocr.md`
+- `docs/phase-4-ai-backend.md`
+- `docs/phase-5-study-tools.md`
+- `docs/phase-7-device-verification.md`
+- `docs/phase-8-security-and-release.md`
 
 ## Verification status
 
-The source files are committed, but package installation, lint, TypeScript, Jest, Android/iOS builds and real-device behavior have not yet been run. Do not treat this repository as release-ready until those checks pass.
+All eight phases now have implementation source or checklists committed. **This is not yet a verified production release.** No dedicated iBuddy Supabase project has been selected, migrations and Edge Functions have not been deployed, provider secrets are not configured, and a native iPhone build has not been run. The CI workflow is committed; its first run must pass before release readiness can be assessed.
