@@ -6,8 +6,9 @@ An iPhone-first browser built with Expo, React Native and TypeScript, with a pri
 
 - **Phase 1 — Foundation:** Expo Router, strict TypeScript, shared theme tokens and architecture/threat-model documentation.
 - **Phase 2 — Browser shell:** HTTPS-only WebView browsing, URL/search handling, tabs, private tabs, local history and bookmarks, and Assessment Lock domain policy.
+- **Phase 3 — Extraction and OCR:** user-triggered visible-page extraction with Zod validation, plus an iOS native Apple Vision module for user-selected images.
 
-Phase 2 deliberately contains **no page extraction, OCR, AI answers or injected page bridge**. Those belong to later phases and must remain disabled on protected assessment pages.
+Page extraction and OCR are user-triggered and disabled on protected assessment pages. Phase 3 does not generate AI answers or upload page/image content; the server-side vision fallback is deferred to Phase 4.
 
 ## Start locally
 
