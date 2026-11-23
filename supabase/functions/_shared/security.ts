@@ -57,10 +57,13 @@ export async function authenticate(req: Request): Promise<AuthContext | Response
   if (!match) return json({ error: "Sign in is required.", code: "AUTH_REQUIRED" }, 401);
 
   const url = Deno.env.get("SUPABASE_URL");
-  const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+  const publishableKeysRaw = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
   const secretKeysRaw = Deno.env.get("SUPABASE_SECRET_KEYS");
+  let defaultPublishable: string | undefined;
   let defaultSecret: string | undefined;
-  if (secretKeysRaw) { try { defaultSecret = JSON.parse(secretKeysRaw)?.default; } catch { /* invalid secret map is treated as missing */ } }
+  if (publishableKeysRaw) { try { defaultPublishable = JSON.parse(publishableKeysRaw)?.default; } catch { /* invalid key map is treated as missing */ } }
+  if (secretKeysRaw) { try { defaultSecret = JSON.parse(secretKeysRaw)?.default; } catch { /* invalid key map is treated as missing */ } }
+  const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? defaultPublishable;
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_SECRET_KEY") ?? defaultSecret;
   if (!url || !anon || !service) return json({ error: "Server authentication is not configured." }, 503);
 
