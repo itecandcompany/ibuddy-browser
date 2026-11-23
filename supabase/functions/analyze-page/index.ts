@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     ? "Summarize this user-requested page reading.\n\n" + pageText
     : "Page content:\n" + pageText + "\n\nUser's conceptual question: " + (question ?? "Explain the key ideas.");
   try {
-    const text = await callModel([{ role: "system", content: system }, { role: "user", content: user }], 1000);
+    const searchQuery = [snapshot.title, ...snapshot.headings.slice(0, 8), question ?? ""].filter(Boolean).join(" ").slice(0, 450);\n    const text = await callModel([{ role: "system", content: system }, { role: "user", content: user }], 1000, searchQuery);
     return json({ text, sourceUrl: snapshot.url, saved: false });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "AI analysis failed." }, 502);
