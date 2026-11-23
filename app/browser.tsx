@@ -97,9 +97,11 @@ export default function BrowserScreen() {
       setSecurityMessage(
         result.reason === 'insecure-http'
           ? 'This browser only loads HTTPS pages. The HTTP address was blocked; iBuddy will not silently downgrade or bypass transport security.'
-          : result.reason === 'unsupported-scheme'
-            ? 'That link type is not supported. Use an HTTPS website address or a search query.'
-            : 'Enter a website address or search phrase.',
+          : result.reason === 'credential-url'
+            ? 'Website addresses containing embedded usernames or passwords are blocked.'
+            : result.reason === 'unsupported-scheme'
+              ? 'That link type is not supported. Use an HTTPS website address or a search query.'
+              : 'Enter a website address or search phrase.',
       );
       return;
     }
@@ -332,12 +334,17 @@ export default function BrowserScreen() {
             onNavigationStateChange={onNavigationStateChange}
             onMessage={onPageSnapshotMessage}
             onShouldStartLoadWithRequest={(request) => {
-              if (request.url.startsWith('https://')) return true;
               if (request.url === 'about:blank') return true;
-              if (request.url.startsWith('http://')) {
-                setSecurityMessage('An insecure HTTP navigation was blocked. iBuddy does not downgrade HTTPS or bypass certificate errors.');
-              } else {
-                setSecurityMessage('A non-HTTPS navigation was blocked for your protection.');
+              try {
+                const destination = new URL(request.url);
+                if (destination.protocol === 'https:' && !destination.username && !destination.password) return true;
+                if (destination.protocol === 'http:') {
+                  setSecurityMessage('An insecure HTTP navigation was blocked. iBuddy does not downgrade HTTPS or bypass certificate errors.');
+                } else {
+                  setSecurityMessage('A non-HTTPS or credential-bearing navigation was blocked for your protection.');
+                }
+              } catch {
+                setSecurityMessage('An invalid navigation was blocked for your protection.');
               }
               return false;
             }}
