@@ -1,0 +1,13 @@
+project_id = "ibuddy-browser"
+
+[functions.analyze-page]
+verify_jwt = true
+
+[functions.chat]
+verify_jwt = true
+
+[functions.ocr-fallback]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
