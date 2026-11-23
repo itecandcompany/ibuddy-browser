@@ -1,12 +1,12 @@
 import * as AppleAuthentication from "expo-apple-authentication";
 
-export function AppleSignInButton() {
+export function AppleSignInButton({ onPress }: { onPress: () => void }) {
   return <AppleAuthentication.AppleAuthenticationButton
     buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
     buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
     cornerRadius={12}
     style={{ height: 48, width: "100%" }}
-    onPress={() => undefined}
+    onPress={onPress}
   />;
 }
 
