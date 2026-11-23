@@ -1,5 +1,5 @@
 import { z } from "npm:zod@4";
-import { assertPageUnlocked, authenticate, callModel, enforceRateLimit, json, options, redactText } from "../_shared/security.ts";
+import { assertPageUnlocked, authenticate, callModel, enforceRateLimit, json, options, readBoundedJson, redactText } from "../_shared/security.ts";
 
 const schema = z.object({
   url: z.string().url().max(2048),
@@ -13,9 +13,8 @@ Deno.serve(async (req) => {
   const preflight = options(req); if (preflight) return preflight;
   if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
   const auth = await authenticate(req); if (auth instanceof Response) return auth;
-  const raw = await req.text(); if (raw.length > 22_000) return json({ error: "Chat request is too large." }, 413);
-  let body: unknown; try { body = JSON.parse(raw); } catch { return json({ error: "Invalid JSON." }, 400); }
-  const parsed = schema.safeParse(body); if (!parsed.success) return json({ error: "Chat request is invalid." }, 400);
+  const body = await readBoundedJson(req, 22_000); if (body instanceof Response) return body;
+  const parsed = schema.safeParse(body.value); if (!parsed.success) return json({ error: "Chat request is invalid." }, 400);
   const data = parsed.data;
   const lock = await assertPageUnlocked(auth.admin, auth.userId, data.url); if (lock) return lock;
   const rate = await enforceRateLimit(auth.admin, auth.userId, "chat", 20); if (rate) return rate;
