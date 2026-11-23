@@ -1,6 +1,7 @@
 import ExpoModulesCore
 import UIKit
 import Vision
+import ImageIO
 
 public final class IBuddyOCRModule: Module {
   public func definition() -> ModuleDefinition {
@@ -25,7 +26,8 @@ public final class IBuddyOCRModule: Module {
       request.usesLanguageCorrection = true
       request.minimumTextHeight = 0.004
 
-      let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+      let orientation = CGImagePropertyOrientation(image.imageOrientation)
+      let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:])
       try handler.perform([request])
 
       let lines: [[String: Any]] = (request.results ?? []).compactMap { observation in
