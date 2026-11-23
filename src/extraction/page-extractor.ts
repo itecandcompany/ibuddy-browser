@@ -64,11 +64,9 @@ export function buildPageExtractionScript(requestId: string): string {
         paragraphs,
         links
       };
-      const total = JSON.stringify(snapshot);
-      if (total.length > 18000) {
-        snapshot.paragraphs = snapshot.paragraphs.slice(0, 30);
-        snapshot.links = snapshot.links.slice(0, 20);
-      }
+      while (JSON.stringify(snapshot).length > 18000 && snapshot.paragraphs.length > 0) snapshot.paragraphs.pop();
+      while (JSON.stringify(snapshot).length > 18000 && snapshot.links.length > 0) snapshot.links.pop();
+      while (JSON.stringify(snapshot).length > 18000 && snapshot.headings.length > 0) snapshot.headings.pop();
       window.ReactNativeWebView.postMessage(JSON.stringify(snapshot));
     } catch (_) {
       window.ReactNativeWebView.postMessage(JSON.stringify({
