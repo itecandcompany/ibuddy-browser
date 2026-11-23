@@ -39,6 +39,8 @@ type BrowserState = PersistedBrowserState & {
   addHistory: (entry: Omit<HistoryEntry, 'id' | 'visitedAt'>) => void;
   toggleBookmark: (entry: Pick<Bookmark, 'url' | 'title'>) => void;
   toggleDomainLock: (domain: string) => void;
+  clearBrowsingData: () => void;
+  clearLocalData: () => void;
 };
 
 const makeId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
