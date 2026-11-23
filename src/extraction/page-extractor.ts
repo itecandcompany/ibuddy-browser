@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 const safeHttpsUrl = z.string().url().refine((value) => {
   try { return new URL(value).protocol === 'https:'; } catch { return false; }
-}, 'Only HTTPS URLs are accepted');
+  try { const parsed = new URL(value); return parsed.username === '' && parsed.password === ''; } catch { return false; }
+}, 'Only credential-free HTTPS URLs are accepted');
 
 export const pageSnapshotSchema = z.object({
   type: z.literal('IBUDDY_PAGE_SNAPSHOT'),
@@ -53,7 +54,7 @@ export function buildPageExtractionScript(requestId: string): string {
           try {
             const parsed = new URL(node.href, location.href);
             if (parsed.protocol !== 'https:') return null;
-            parsed.search = ''; parsed.hash = '';
+            parsed.search = ''; parsed.hash = ''; parsed.username = ''; parsed.password = ''; 
             return { label: redact(node.innerText || node.textContent, 300), url: parsed.toString() };
           } catch (_) { return null; }
         }).filter((item) => item && item.label).slice(0, 60);
