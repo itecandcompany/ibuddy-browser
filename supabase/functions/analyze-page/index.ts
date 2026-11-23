@@ -1,5 +1,5 @@
 import { z } from "npm:zod@4";
-import { assertPageUnlocked, authenticate, callModel, corsHeaders, enforceRateLimit, json, options, redactText } from "../_shared/security.ts";
+import { assertPageUnlocked, authenticate, callModel, enforceRateLimit, json, options, readBoundedJson, redactText } from "../_shared/security.ts";
 
 const schema = z.object({
   mode: z.enum(["summary", "explain"]),
@@ -21,10 +21,8 @@ Deno.serve(async (req) => {
   const preflight = options(req); if (preflight) return preflight;
   if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
   const auth = await authenticate(req); if (auth instanceof Response) return auth;
-  const raw = await req.text();
-  if (raw.length > 28_000) return json({ error: "Page snapshot is too large." }, 413);
-  let body: unknown; try { body = JSON.parse(raw); } catch { return json({ error: "Invalid JSON." }, 400); }
-  const parsed = schema.safeParse(body);
+  const body = await readBoundedJson(req, 28_000); if (body instanceof Response) return body;
+  const parsed = schema.safeParse(body.value);
   if (!parsed.success) return json({ error: "The page snapshot is invalid or exceeds allowed limits." }, 400);
   const { snapshot, mode, question } = parsed.data;
   const lock = await assertPageUnlocked(auth.admin, auth.userId, snapshot.url); if (lock) return lock;
