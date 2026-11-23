@@ -118,28 +118,64 @@ export async function assertPageUnlocked(admin: SupabaseClient, userId: string, 
   return null;
 }
 
-export async function callModel(messages: Array<{ role: "system" | "user" | "assistant"; content: string | Array<Record<string, unknown>> }>, maxTokens = 900): Promise<string> {
-  const endpoint = Deno.env.get("AI_PROVIDER_URL");
-  const apiKey = Deno.env.get("AI_PROVIDER_API_KEY");
-  const model = Deno.env.get("AI_MODEL");
-  if (!endpoint || !apiKey || !model) throw new Error("AI provider is not configured. Set AI_PROVIDER_URL, AI_PROVIDER_API_KEY and AI_MODEL as Supabase Edge Function secrets.");
-  let providerUrl: URL;
-  try { providerUrl = new URL(endpoint); } catch { throw new Error("AI_PROVIDER_URL is invalid."); }
-  if (providerUrl.protocol !== "https:") throw new Error("AI_PROVIDER_URL must use HTTPS.");
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model, messages, temperature: 0.2, max_tokens: maxTokens }),
-    signal: AbortSignal.timeout(45_000),
+async function requestChatCompletion(endpoint:string,apiKey:string,model:string,messages:Array<{role:"system"|"user"|"assistant";content:string|Array<Record<string,unknown>>}>,maxTokens:number):Promise<string>{
+  const response=await fetch(endpoint,{
+    method:"POST",
+    headers:{"Authorization":`Bearer ${apiKey}`,"Content-Type":"application/json"},
+    body:JSON.stringify({model,messages,temperature:0.2,max_tokens:maxTokens}),
+    signal:AbortSignal.timeout(35_000),
   });
-  if (!response.ok) {
-    const safeStatus = response.status;
-    throw new Error(`AI provider request failed (HTTP ${safeStatus}).`);
+  if(!response.ok) throw new Error(`Provider returned HTTP ${response.status}`);
+  const payload=await response.json();
+  const content=payload?.choices?.[0]?.message?.content;
+  if(typeof content!=="string"||!content.trim()) throw new Error("Provider returned no readable text.");
+  return content.slice(0,16_000);
+}
+
+async function braveSearchFallback(query:string):Promise<string>{
+  const key=Deno.env.get("BRAVE_SEARCH_API_KEY");
+  if(!key) throw new Error("Both AI providers are unavailable and live search is not configured. Add BRAVE_SEARCH_API_KEY to the Supabase Edge Function secrets.");
+  const url=new URL("https://api.search.brave.com/res/v1/web/search");
+  url.searchParams.set("q",query.slice(0,500));
+  url.searchParams.set("count","5");
+  url.searchParams.set("country","TZ");
+  url.searchParams.set("search_lang","en");
+  const response=await fetch(url.toString(),{headers:{"X-Subscription-Token":key,"Accept":"application/json"},signal:AbortSignal.timeout(12_000)});
+  if(!response.ok) throw new Error(`Live web search returned HTTP ${response.status}`);
+  const payload=await response.json();
+  const results=(payload?.web?.results??[]).slice(0,5) as Array<{title?:string,url?:string,description?:string,page?:string}>;
+  if(results.length===0) throw new Error("No useful live web search results were found.");
+  const lines=results.map((item,index)=>`${index+1}. ${item.title??"Untitled source"}\n   ${item.description??"No preview available."}\n   Source: ${item.url??"URL unavailable"}`);
+  return "LIVE WEB SEARCH FALLBACK — Gemini and OpenAI could not complete this request. These are search results, not an AI-generated or independently verified answer. Open the sources and compare them.\n\n"+lines.join("\n\n");
+}
+
+export async function callModel(
+  messages:Array<{role:"system"|"user"|"assistant";content:string|Array<Record<string,unknown>>}>,
+  maxTokens=900,
+  searchQuery?:string,
+):Promise<string>{
+  const failures:string[]=[];
+  const geminiKey=Deno.env.get("GEMINI_API_KEY");
+  if(geminiKey){
+    try{
+      const model=Deno.env.get("GEMINI_MODEL")??"gemini-2.5-flash";
+      return await requestChatCompletion("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",geminiKey,model,messages,maxTokens);
+    }catch(error){failures.push("Gemini: "+(error instanceof Error?error.message:"request failed"));}
+  }else{failures.push("Gemini: API key is not configured");}
+
+  const openaiKey=Deno.env.get("OPENAI_API_KEY");
+  if(openaiKey){
+    try{
+      const model=Deno.env.get("OPENAI_MODEL")??"gpt-4.1-mini";
+      return await requestChatCompletion("https://api.openai.com/v1/chat/completions",openaiKey,model,messages,maxTokens);
+    }catch(error){failures.push("OpenAI: "+(error instanceof Error?error.message:"request failed"));}
+  }else{failures.push("OpenAI: API key is not configured");}
+
+  if(searchQuery?.trim()){
+    try{return await braveSearchFallback(searchQuery.trim());}
+    catch(error){failures.push("Web search: "+(error instanceof Error?error.message:"request failed"));}
   }
-  const payload = await response.json();
-  const content = payload?.choices?.[0]?.message?.content;
-  if (typeof content !== "string" || !content.trim()) throw new Error("AI provider returned no readable text.");
-  return content.slice(0, 16_000);
+  throw new Error("All iBuddy answer providers failed. "+failures.join("; "));
 }
 
 export function redactText(value: string): string {
