@@ -14,11 +14,10 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { WebView, type WebViewNavigation } from 'react-native-webview';
+import { WebView, type WebViewNavigation, type WebView as WebViewType, type WebViewMessageEvent } from 'react-native-webview';
 import * as ImagePicker from 'expo-image-picker';
 import { recognizeImageText } from '@/ocr';
 import type { OcrResult } from '@/ocr/types';
-import type { WebView as WebViewType, WebViewMessageEvent } from 'react-native-webview';
 import { buildPageExtractionScript, pageSnapshotSchema, type PageSnapshot } from '@/extraction/page-extractor';
 import { palette } from '@/theme/palette';
 import { resolveAddressInput } from '@/browser/url';
@@ -175,6 +174,7 @@ export default function BrowserScreen() {
         setExtracting(false);
         return;
       }
+      extractionRequestId.current = null;
       setPageSnapshot(parsed.data);
       setSnapshotVisible(true);
       setExtracting(false);
