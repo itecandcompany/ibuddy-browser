@@ -88,7 +88,7 @@ export default function BrowserScreen() {
       setOcrResult(null);
       setOcrVisible(false);
     }
-  }, [locked]);
+  }, [locked, setAnalysisSnapshot]);
 
   const navigate = (value: string) => {
     const result = resolveAddressInput(value);
