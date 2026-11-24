@@ -16,7 +16,7 @@ export function extractPageHighlights(snapshot: PageSnapshot, limit = 8): PageHi
   return ranked.map(([term]) => {
     const heading = snapshot.headings.find((value) => value.toLowerCase().includes(term));
     const paragraph = snapshot.paragraphs.find((value) => value.toLowerCase().includes(term));
-    const source = heading ? "heading" : "page-text";
+    const source: PageHighlight["source"] = heading ? "heading" : "page-text";
     const excerpt = (heading ?? paragraph ?? "").slice(0, 320);
     return { term, excerpt, source };
   }).filter((item) => item.excerpt.length > 0);
