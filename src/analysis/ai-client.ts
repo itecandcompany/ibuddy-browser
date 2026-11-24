@@ -32,7 +32,7 @@ export async function explainPage(snapshot: PageSnapshot, question: string): Pro
   return invoke("analyze-page", { mode: "explain", snapshot, question });
 }
 
-export async function askPage(snapshot: PageSnapshot, question: string, history: Array<{ role: "user" | "assistant"; content: string }> = []): Promise<AIResponse> {
+export async function askPage(snapshot: PageSnapshot, question: string, history: { role: "user" | "assistant"; content: string }[] = []): Promise<AIResponse> {
   return invoke("chat", {
     url: snapshot.url,
     title: snapshot.title,
