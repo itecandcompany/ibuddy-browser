@@ -3,7 +3,7 @@ import { getSupabaseClient } from "@/lib/supabase";
 
 export type AIResponse = { text: string; sourceUrl?: string; saved?: false };
 
-async function invoke<T>(name: string, body: unknown): Promise<T> {
+async function invoke<T>(name: string, body: Record<string, unknown>): Promise<T> {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error("iBuddy is not connected to Supabase. Configure the public Supabase URL and key, then restart the app.");
   const { data: sessionData } = await supabase.auth.getSession();
