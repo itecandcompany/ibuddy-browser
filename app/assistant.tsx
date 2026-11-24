@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, Sc
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useAnalysisStore } from "@/state/analysis-store";
-import { askPage, explainPage, summarizePage } from "@/analysis/ai-client";
+import { askPage, summarizePage } from "@/analysis/ai-client";
 import { classifyQuestion } from "@/analysis/question-classifier";
 import { extractPageHighlights } from "@/highlights/highlight-extractor";
 import { palette } from "@/theme/palette";
@@ -33,6 +33,8 @@ export default function AssistantScreen() {
   const send = async () => {
     const prompt = question.trim();
     if (!prompt || busy) return;
+    const intent = classifyQuestion(prompt);
+    setAssessmentNotice(intent.assessmentLike);
     setQuestion("");
     const next = [...messages, { role: "user" as const, content: prompt }];
     setMessages(next);
@@ -57,7 +59,7 @@ export default function AssistantScreen() {
           {summary ? <View style={styles.response}><Text style={styles.section}>PAGE SUMMARY</Text><Text style={styles.responseText}>{summary}</Text></View> : null}
           <Text style={styles.section}>KEY TERMS FROM THIS PAGE</Text>
           {extractPageHighlights(snapshot).map((item) => <View key={item.term} style={styles.highlight}><Text style={styles.highlightTerm}>{item.term}</Text><Text style={styles.highlightExcerpt}>{item.excerpt}</Text></View>)}
-          {assessmentNotice ? <Text style={styles.assessmentNotice}>This looks assessment-related. iBuddy will teach concepts and general methods, not supply a direct answer.</Text> : null}
+          {assessmentNotice ? <Text style={styles.assessmentNotice}>This looks assessment-related. iBuddy will teach relevant concepts and methods rather than provide a direct answer to a live graded or proctored question.</Text> : null}
           <Text style={styles.section}>ASK ABOUT THE PAGE</Text>
           <TextInput value={question} onChangeText={setQuestion} placeholder="Ask for a concept explanation…" placeholderTextColor={palette.muted} multiline style={styles.input} />
           <Pressable disabled={busy || !question.trim()} style={styles.primary} onPress={send}><Text style={styles.primaryText}>Ask iBuddy</Text></Pressable>
