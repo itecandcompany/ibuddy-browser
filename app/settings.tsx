@@ -11,6 +11,7 @@ export default function SettingsScreen(){
  const [busy,setBusy]=useState(false);
  const lockedDomains=useBrowserStore(s=>s.lockedDomains);
  const toggleDomainLock=useBrowserStore(s=>s.toggleDomainLock);
+ const clearBrowsingData=useBrowserStore(s=>s.clearBrowsingData);
  const clearLocalData=useBrowserStore(s=>s.clearLocalData);
  const supabase=getSupabaseClient();
  useEffect(()=>{let live=true;if(supabase)supabase.auth.getUser().then(({data})=>{if(live)setEmail(data.user?.email??null);});return()=>{live=false;};},[supabase]);
@@ -25,6 +26,7 @@ export default function SettingsScreen(){
   }catch(error){Alert.alert("Could not sync",error instanceof Error?error.message:"Please try again.");}
   finally{setBusy(false);}
  };
+ const confirmClearBrowsingData=()=>Alert.alert("Clear browsing data?","This removes saved history and bookmarks from this iPhone. It does not delete your account or manually locked domains.",[{text:"Cancel",style:"cancel"},{text:"Clear data",style:"destructive",onPress:()=>{clearBrowsingData();Alert.alert("Browsing data cleared","Your local history and bookmarks have been removed.");}}]);
  const signOut=async()=>{if(!supabase)return;const {error}=await supabase.auth.signOut();if(error)Alert.alert("Sign out failed",error.message);else{setEmail(null);router.replace("/");}};
  const deleteAccount=()=>{
   Alert.alert("Delete your iBuddy account?","This permanently deletes your account and server-side data. This cannot be undone.",[
@@ -42,7 +44,7 @@ export default function SettingsScreen(){
   <Text style={styles.title}>Settings & privacy</Text><Pressable onPress={()=>router.push("/privacy")}><Text style={styles.back}>Read privacy details ›</Text></Pressable>
   <View style={styles.card}><Text style={styles.label}>ACCOUNT</Text><Text style={styles.value}>{email??"Not signed in"}</Text><Pressable style={styles.button} onPress={()=>router.push("/sign-in")}><Text style={styles.buttonText}>{email?"Switch account":"Sign in / create account"}</Text></Pressable>{email?<Pressable style={styles.secondary} onPress={signOut}><Text style={styles.secondaryText}>Sign out</Text></Pressable>:null}</View>
   <View style={styles.card}><Text style={styles.label}>ASSESSMENT LOCK</Text><Text style={styles.value}>{lockedDomains.length} manually locked domain(s)</Text>{lockedDomains.map(domain=><View key={domain} style={styles.domainRow}><Text style={styles.domain}>• {domain}</Text><Pressable onPress={()=>toggleDomainLock(domain)}><Text style={styles.remove}>Remove</Text></Pressable></View>)}<Text style={styles.note}>Automatic protected-domain rules remain active. Manual locks are local until synced.</Text><Pressable disabled={busy||!email} style={styles.button} onPress={syncLocks}><Text style={styles.buttonText}>Sync locked domains to server</Text></Pressable></View>
-  <View style={styles.card}><Text style={styles.label}>DATA & RETENTION</Text><Text style={styles.note}>AI requests are not stored by the AI functions. Browsing history and bookmarks currently remain in local app storage. Private tabs do not add history. Saved cloud analyses and history sync are not enabled by default.</Text><Text style={styles.note}>You can delete your account and server-owned records below. Clearing local app storage is separate and can be done from iOS Settings by removing the app.</Text></View>
+  <View style={styles.card}><Text style={styles.label}>DATA & RETENTION</Text><Text style={styles.note}>AI requests are not stored by the AI functions. Browsing history and bookmarks currently remain in local app storage. Private tabs do not add history. Saved cloud analyses and history sync are not enabled by default.</Text><Text style={styles.note}>You can delete your account and server-owned records below. Clearing local app storage is separate and can be done from iOS Settings by removing the app.</Text><Pressable style={styles.secondary} onPress={confirmClearBrowsingData}><Text style={styles.secondaryText}>Clear history and bookmarks</Text></Pressable></View>
   {email?<View style={styles.card}><Text style={styles.label}>DANGER ZONE</Text><Text style={styles.note}>Account deletion is irreversible. The server deletes the Auth user; rows linked with ON DELETE CASCADE are removed with it.</Text><Pressable disabled={busy} style={styles.danger} onPress={deleteAccount}><Text style={styles.dangerText}>Delete my account and data</Text></Pressable></View>:null}
  </ScrollView></SafeAreaView>;
 }
