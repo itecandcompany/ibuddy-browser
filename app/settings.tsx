@@ -11,7 +11,6 @@ export default function SettingsScreen(){
  const [busy,setBusy]=useState(false);
  const lockedDomains=useBrowserStore(s=>s.lockedDomains);
  const toggleDomainLock=useBrowserStore(s=>s.toggleDomainLock);
- const clearBrowsingData=useBrowserStore(s=>s.clearBrowsingData);
  const clearLocalData=useBrowserStore(s=>s.clearLocalData);
  const supabase=getSupabaseClient();
  useEffect(()=>{let live=true;if(supabase)supabase.auth.getUser().then(({data})=>{if(live)setEmail(data.user?.email??null);});return()=>{live=false;};},[supabase]);
