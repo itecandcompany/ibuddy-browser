@@ -21,7 +21,7 @@ export default function PrivacyScreen(){
   <Text style={styles.heading}>What iBuddy does not do</Text>
   <Text style={styles.body}>iBuddy does not monitor other apps, record your screen in the background, read passwords or typed form answers, inject answers into webpages, bypass logins/paywalls/certificates, or automatically analyze pages.</Text>
   <Text style={styles.heading}>Important deployment note</Text>
-  <Text style={styles.body}>This is the current software behavior, not a substitute for a final legal privacy policy. Before public release, the publisher must name the actual operator, provide contact details, confirm the selected AI provider's retention terms, publish a legal privacy policy and complete the App Store privacy disclosures.</Text>
+  <Text style={styles.body}>This is the current software behavior, not a substitute for a final legal privacy policy. Before public release, the publisher must name the actual operator, provide contact details, confirm the selected AI provider&apos;s retention terms, publish a legal privacy policy and complete the App Store privacy disclosures.</Text>
  </ScrollView></SafeAreaView>;
 }
 const styles=StyleSheet.create({
