@@ -4,7 +4,7 @@ export type QuestionIntent = {
   responseMode: "teach-concept" | "explain" | "general";
 };
 
-const patterns: Array<[QuestionIntent["kind"], RegExp]> = [
+const patterns: [QuestionIntent["kind"], RegExp][] = [
   ["definition", /\b(define|what is|what are|meaning of|describe)\b/i],
   ["comparison", /\b(compare|contrast|difference between|similarities|versus|vs\.)\b/i],
   ["procedure", /\b(how do i|how to|steps to|process of|procedure|method)\b/i],
