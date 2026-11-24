@@ -111,6 +111,8 @@ export const useBrowserStore = create<BrowserState>()(
           ? state.lockedDomains.filter((item) => item !== domain)
           : [...state.lockedDomains, domain],
       })),
+      clearBrowsingData: () => set({ history: [], bookmarks: [] }),
+      clearLocalData: () => set({ history: [], bookmarks: [], lockedDomains: [] }),
     }),
     {
       name: 'ibuddy-browser-local-v1',
